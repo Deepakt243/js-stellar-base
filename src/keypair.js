@@ -1,12 +1,9 @@
-import nacl from 'tweetnacl';
-import isUndefined from 'lodash/isUndefined';
-import isString from 'lodash/isString';
-
-import { sign, verify, generate } from './signing';
-import { StrKey } from './strkey';
-import { hash } from './hashing';
-
-import xdr from './generated/stellar-xdr_generated';
+import {Network} from "./network";
+import {sign, verify} from "./signing";
+import * as base58 from "./base58";
+import {StrKey} from "./strkey";
+import {default as xdr} from "./generated/stellar-xdr_generated";
+import nacl from "tweetnacl";
 
 /**
  * `Keypair` represents public (and secret) keys of the account.
@@ -27,8 +24,8 @@ import xdr from './generated/stellar-xdr_generated';
  */
 export class Keypair {
   constructor(keys) {
-    if (keys.type !== 'ed25519') {
-      throw new Error('Invalid keys type');
+    if (keys.type != "ed25519") {
+      throw new Error("Invalid keys type");
     }
 
     this.type = keys.type;
@@ -36,25 +33,25 @@ export class Keypair {
     if (keys.secretKey) {
       keys.secretKey = Buffer.from(keys.secretKey);
 
-      if (keys.secretKey.length !== 32) {
-        throw new Error('secretKey length is invalid');
+      if (keys.secretKey.length != 32) {
+        throw new Error("secretKey length is invalid");
       }
 
-      this._secretSeed = keys.secretKey;
-      this._publicKey = generate(keys.secretKey);
-      this._secretKey = Buffer.concat([keys.secretKey, this._publicKey]);
+      let secretKeyUint8 = new Uint8Array(keys.secretKey);
+      let naclKeys = nacl.sign.keyPair.fromSeed(secretKeyUint8);
 
-      if (
-        keys.publicKey &&
-        !this._publicKey.equals(Buffer.from(keys.publicKey))
-      ) {
-        throw new Error('secretKey does not match publicKey');
+      this._secretSeed = keys.secretKey;
+      this._secretKey = Buffer.from(naclKeys.secretKey);
+      this._publicKey = Buffer.from(naclKeys.publicKey);
+
+      if (keys.publicKey && !this._publicKey.equals(Buffer.from(keys.publicKey))) {
+        throw new Error("secretKey does not match publicKey");
       }
     } else {
       this._publicKey = Buffer.from(keys.publicKey);
 
-      if (this._publicKey.length !== 32) {
-        throw new Error('publicKey length is invalid');
+      if (this._publicKey.length != 32) {
+        throw new Error("publicKey length is invalid");
       }
     }
   }
@@ -66,8 +63,19 @@ export class Keypair {
    * @returns {Keypair}
    */
   static fromSecret(secret) {
-    const rawSecret = StrKey.decodeEd25519SecretSeed(secret);
+    let rawSecret = StrKey.decodeEd25519SecretSeed(secret);
     return this.fromRawEd25519Seed(rawSecret);
+  }
+
+  /**
+   * Base58 address encoding is **DEPRECATED**! Use this method only for transition to strkey encoding.
+   * @param {string} seed Base58 secret seed
+   * @deprecated Use {@link Keypair.fromSecret}
+   * @returns {Keypair}
+   */
+  static fromBase58Seed(seed) {
+    let rawSeed = base58.decodeBase58Check("seed", seed);
+    return this.fromRawEd25519Seed(rawSeed);
   }
 
   /**
@@ -77,22 +85,18 @@ export class Keypair {
    * @returns {Keypair}
    */
   static fromRawEd25519Seed(rawSeed) {
-    return new this({ type: 'ed25519', secretKey: rawSeed });
+    return new this({type: 'ed25519', secretKey: rawSeed});
   }
 
   /**
    * Returns `Keypair` object representing network master key.
-   * @param {string} networkPassphrase passphrase of the target stellar network (e.g. "Public Global Stellar Network ; September 2015").
    * @returns {Keypair}
    */
-  static master(networkPassphrase) {
-    if (!networkPassphrase) {
-      throw new Error(
-        'No network selected. Please pass a network argument, e.g. `Keypair.master(Networks.PUBLIC)`.'
-      );
+  static master() {
+    if (Network.current() === null) {
+      throw new Error("No network selected. Use `Network.use`, `Network.usePublicNetwork` or `Network.useTestNetwork` helper methods to select network.");
     }
-
-    return this.fromRawEd25519Seed(hash(networkPassphrase));
+    return this.fromRawEd25519Seed(Network.current().networkId());
   }
 
   /**
@@ -105,7 +109,7 @@ export class Keypair {
     if (publicKey.length !== 32) {
       throw new Error('Invalid Stellar public key');
     }
-    return new this({ type: 'ed25519', publicKey });
+    return new this({type: 'ed25519', publicKey});
   }
 
   /**
@@ -113,7 +117,7 @@ export class Keypair {
    * @returns {Keypair}
    */
   static random() {
-    const secret = nacl.randomBytes(32);
+    let secret = nacl.randomBytes(32);
     return this.fromRawEd25519Seed(secret);
   }
 
@@ -126,34 +130,6 @@ export class Keypair {
   }
 
   /**
-   * Creates a {@link xdr.MuxedAccount} object from the public key.
-   *
-   * You will get a different type of muxed account depending on whether or not
-   * you pass an ID.
-   *
-   * @param  {string} [id] - stringified integer indicating the underlying muxed
-   *     ID of the new account object
-   *
-   * @return {xdr.MuxedAccount}
-   */
-  xdrMuxedAccount(id) {
-    if (!isUndefined(id)) {
-      if (!isString(id)) {
-        throw new TypeError(`expected string for ID, got ${typeof id}`);
-      }
-
-      return xdr.MuxedAccount.keyTypeMuxedEd25519(
-        new xdr.MuxedAccountMed25519({
-          id: xdr.Uint64.fromString(id),
-          ed25519: this._publicKey
-        })
-      );
-    }
-
-    return new xdr.MuxedAccount.keyTypeEd25519(this._publicKey);
-  }
-
-  /**
    * Returns raw public key
    * @returns {Buffer}
    */
@@ -162,7 +138,7 @@ export class Keypair {
   }
 
   signatureHint() {
-    const a = this.xdrAccountId().toXDR();
+    let a = this.xdrAccountId().toXDR();
 
     return a.slice(a.length - 4);
   }
@@ -181,14 +157,14 @@ export class Keypair {
    */
   secret() {
     if (!this._secretSeed) {
-      throw new Error('no secret key available');
+      throw new Error("no secret key available");
     }
 
-    if (this.type === 'ed25519') {
+    if (this.type == 'ed25519') {
       return StrKey.encodeEd25519SecretSeed(this._secretSeed);
     }
 
-    throw new Error('Invalid Keypair type');
+    throw new Error("Invalid Keypair type");
   }
 
   /**
@@ -214,7 +190,7 @@ export class Keypair {
    */
   sign(data) {
     if (!this.canSign()) {
-      throw new Error('cannot sign: no secret key available');
+      throw new Error("cannot sign: no secret key available");
     }
 
     return sign(data, this._secretKey);
@@ -231,9 +207,9 @@ export class Keypair {
   }
 
   signDecorated(data) {
-    const signature = this.sign(data);
-    const hint = this.signatureHint();
+    let signature = this.sign(data);
+    let hint      = this.signatureHint();
 
-    return new xdr.DecoratedSignature({ hint, signature });
+    return new xdr.DecoratedSignature({hint, signature});
   }
 }

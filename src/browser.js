@@ -1,2 +1,6 @@
-// eslint-disable-next-line prefer-import/prefer-import-over-require
-module.exports = require('./index');
+"use strict";
+
+module.exports = require("./index");
+// Ignore lodash from js-xdr
+/*globals _*/
+_.noConflict();

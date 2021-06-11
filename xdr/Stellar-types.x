@@ -18,10 +18,7 @@ enum CryptoKeyType
 {
     KEY_TYPE_ED25519 = 0,
     KEY_TYPE_PRE_AUTH_TX = 1,
-    KEY_TYPE_HASH_X = 2,
-    // MUXED enum values for supported type are derived from the enum values
-    // above by ORing them with 0x100
-    KEY_TYPE_MUXED_ED25519 = 0x100
+    KEY_TYPE_HASH_X = 2
 };
 
 enum PublicKeyType
@@ -47,7 +44,7 @@ union SignerKey switch (SignerKeyType type)
 case SIGNER_KEY_TYPE_ED25519:
     uint256 ed25519;
 case SIGNER_KEY_TYPE_PRE_AUTH_TX:
-    /* SHA-256 Hash of TransactionSignaturePayload structure */
+    /* Hash of Transaction structure */
     uint256 preAuthTx;
 case SIGNER_KEY_TYPE_HASH_X:
     /* Hash of random 256 bit preimage X */
@@ -63,21 +60,22 @@ typedef PublicKey NodeID;
 
 struct Curve25519Secret
 {
-    opaque key[32];
+        opaque key[32];
 };
 
 struct Curve25519Public
 {
-    opaque key[32];
+        opaque key[32];
 };
 
 struct HmacSha256Key
 {
-    opaque key[32];
+        opaque key[32];
 };
 
 struct HmacSha256Mac
 {
-    opaque mac[32];
+        opaque mac[32];
 };
+
 }

@@ -1,14 +1,10 @@
-import times from 'lodash/times';
+import {times} from "lodash";
 
-function bufferToArray(buffer, length, offset = 0) {
-  return times(length, (n) => buffer[offset + n]);
+export function bufferToArray(buffer, length, offset=0) {
+  return times(length, n => buffer[offset + n]);
 }
 
-function cursorToArray(io) {
+export function cursorToArray(io) {
   return bufferToArray(io.buffer(), io.tell());
 }
 
-module.exports = {
-  bufferToArray,
-  cursorToArray
-};

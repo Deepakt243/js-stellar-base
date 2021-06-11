@@ -27,14 +27,12 @@ The returned transaction will contain the sequence number of the source account.
 
 
 ```js
+StellarSdk.Network.useTestNetwork();
 // StellarBase.Network.usePublicNetwork(); if this transaction is for the public network
 // Create an Account object from an address and sequence number.
 var account=new StellarBase.Account("GD6WU64OEP5C4LRBH6NK3MHYIA2ADN6K6II6EXPNVUR3ERBXT4AN4ACD","2319149195853854");
 
-var transaction = new StellarBase.TransactionBuilder(account, {
-        fee: StellarBase.BASE_FEE,
-        networkPassphrase: Networks.TESTNET
-    })
+var transaction = new StellarBase.TransactionBuilder(account)
         // add a payment operation to the transaction
         .addOperation(StellarBase.Operation.payment({
                 destination: "GASOCNHNNLYFNMDJYQ3XFMI7BYHIOCFW3GJEOWRPEGK2TDPGTG2E5EDW",
@@ -48,8 +46,6 @@ var transaction = new StellarBase.TransactionBuilder(account, {
                     weight: 1
                 }
             }))
-        // mark this transaction as valid only for the next 30 seconds
-        .setTimeout(30)
         .build();
 ```
 
@@ -80,17 +76,12 @@ There are 5 types of memos:
 
 ```js
 var memo = Memo.text('Happy birthday!');
-var transaction = new StellarBase.TransactionBuilder(account, {
-    memo: memo,
-    fee: StellarBase.BASE_FEE,
-    networkPassphrase: Networks.TESTNET
-})
+var transaction = new StellarBase.TransactionBuilder(account, {memo:memo})
         .addOperation(StellarBase.Operation.payment({
                 destination: "GASOCNHNNLYFNMDJYQ3XFMI7BYHIOCFW3GJEOWRPEGK2TDPGTG2E5EDW",
                 asset: StellarBase.Asset.native(),
                 amount: "2000"
             }))
-        .setTimeout(30)
         .build();
 ```
 
@@ -143,22 +134,19 @@ var keypair = Keypair.random();
 
 
 ```js
+StellarBase.Network.useTestNetwork();
 var key1 = Keypair.fromSecret('SBK2VIYYSVG76E7VC3QHYARNFLY2EAQXDHRC7BMXBBGIFG74ARPRMNQM');
 var key2 = Keypair.fromSecret('SAMZUAAPLRUH62HH3XE7NVD6ZSMTWPWGM6DS4X47HLVRHEBKP4U2H5E7');
 
 // Create an Account object from an address and sequence number.
 var account=new StellarBase.Account("GD6WU64OEP5C4LRBH6NK3MHYIA2ADN6K6II6EXPNVUR3ERBXT4AN4ACD","2319149195853854");
 
-var transaction = new StellarBase.TransactionBuilder(account, {
-    fee: StellarBase.BASE_FEE,
-    networkPassphrase: Networks.TESTNET
-})
+var transaction = new StellarBase.TransactionBuilder(account)
         .addOperation(StellarBase.Operation.payment({
                 destination: "GASOCNHNNLYFNMDJYQ3XFMI7BYHIOCFW3GJEOWRPEGK2TDPGTG2E5EDW",
                 asset: StellarBase.Asset.native(),
                 amount: "2000"  // 2000 XLM
             }))
-        .setTimeout(30)
         .build();
 
 transaction.sign(key1);

@@ -1,9 +1,9 @@
+import {default as xdr} from "./generated/stellar-xdr_generated";
+import {Keypair} from "./keypair";
+import {StrKey} from "./strkey";
 import clone from 'lodash/clone';
 import padEnd from 'lodash/padEnd';
 import trimEnd from 'lodash/trimEnd';
-import xdr from './generated/stellar-xdr_generated';
-import { Keypair } from './keypair';
-import { StrKey } from './strkey';
 
 /**
  * Asset class represents an asset, either the native asset (`XLM`)
@@ -19,15 +19,13 @@ import { StrKey } from './strkey';
 export class Asset {
   constructor(code, issuer) {
     if (!/^[a-zA-Z0-9]{1,12}$/.test(code)) {
-      throw new Error(
-        'Asset code is invalid (maximum alphanumeric, 12 characters at max)'
-      );
+      throw new Error("Asset code is invalid (maximum alphanumeric, 12 characters at max)");
     }
-    if (String(code).toLowerCase() !== 'xlm' && !issuer) {
-      throw new Error('Issuer cannot be null');
+    if (String(code).toLowerCase() !== "xlm" && !issuer) {
+      throw new Error("Issuer cannot be null");
     }
     if (issuer && !StrKey.isValidEd25519PublicKey(issuer)) {
-      throw new Error('Issuer is invalid');
+      throw new Error("Issuer is invalid");
     }
 
     this.code = code;
@@ -39,7 +37,7 @@ export class Asset {
    * @Return {Asset}
    */
   static native() {
-    return new Asset('XLM');
+    return new Asset("XLM");
   }
 
   /**
@@ -48,15 +46,13 @@ export class Asset {
    * @returns {Asset}
    */
   static fromOperation(assetXdr) {
-    let anum;
-    let code;
-    let issuer;
-    switch (assetXdr.switch()) {
-      case xdr.AssetType.assetTypeNative():
+    let anum, code, issuer;
+    switch(assetXdr.switch()) {
+        case xdr.AssetType.assetTypeNative():
         return this.native();
       case xdr.AssetType.assetTypeCreditAlphanum4():
         anum = assetXdr.alphaNum4();
-      /* falls through */
+        /* falls through */
       case xdr.AssetType.assetTypeCreditAlphanum12():
         anum = anum || assetXdr.alphaNum12();
         issuer = StrKey.encodeEd25519PublicKey(anum.issuer().ed25519());
@@ -69,15 +65,14 @@ export class Asset {
 
   /**
    * Returns the xdr object for this asset.
-   * @returns {xdr.Asset} XDR Asset object
+   * @returns {xdr.Asset}
    */
   toXDRObject() {
     if (this.isNative()) {
       return xdr.Asset.assetTypeNative();
     }
-
-    let xdrType;
-    let xdrTypeString;
+      
+    let xdrType, xdrTypeString;
     if (this.code.length <= 4) {
       xdrType = xdr.AssetAlphaNum4;
       xdrTypeString = 'assetTypeCreditAlphanum4';
@@ -87,11 +82,10 @@ export class Asset {
     }
 
     // pad code with null bytes if necessary
-    const padLength = this.code.length <= 4 ? 4 : 12;
-    const paddedCode = padEnd(this.code, padLength, '\0');
+    let padLength = this.code.length <= 4 ? 4 : 12;
+    let paddedCode = padEnd(this.code, padLength, '\0');
 
-    // eslint-disable-next-line new-cap
-    const assetType = new xdrType({
+    var assetType = new xdrType({
       assetCode: paddedCode,
       issuer: Keypair.fromPublicKey(this.issuer).xdrAccountId()
     });
@@ -100,61 +94,58 @@ export class Asset {
   }
 
   /**
-   * @returns {string} Asset code
+   * Return the asset code
+   * @returns {string}
    */
   getCode() {
     return clone(this.code);
   }
 
   /**
-   * @returns {string} Asset issuer
+   * Return the asset issuer
+   * @returns {string}
    */
   getIssuer() {
     return clone(this.issuer);
   }
 
   /**
-   * @see [Assets concept](https://www.stellar.org/developers/guides/concepts/assets.html)
-   * @returns {string} Asset type. Can be one of following types:
+   * Return the asset type. Can be one of following types:
    *
    * * `native`
    * * `credit_alphanum4`
    * * `credit_alphanum12`
+   *
+   * @see [Assets concept](https://www.stellar.org/developers/learn/concepts/assets.html)
+   * @returns {string}
    */
   getAssetType() {
     if (this.isNative()) {
       return 'native';
-    }
+    } 
     if (this.code.length >= 1 && this.code.length <= 4) {
-      return 'credit_alphanum4';
+      return "credit_alphanum4";
     }
     if (this.code.length >= 5 && this.code.length <= 12) {
-      return 'credit_alphanum12';
+      return "credit_alphanum12";
     }
-
-    return null;
   }
 
+
   /**
-   * @returns {boolean}  true if this asset object is the native asset.
+   * Returns true if this asset object is the native asset.
+   * @returns {boolean}
    */
   isNative() {
     return !this.issuer;
   }
 
   /**
+   * Returns true if this asset equals the given asset.
    * @param {Asset} asset Asset to compare
-   * @returns {boolean} true if this asset equals the given asset.
+   * @returns {boolean}
    */
   equals(asset) {
-    return this.code === asset.getCode() && this.issuer === asset.getIssuer();
-  }
-
-  toString() {
-    if (this.isNative()) {
-      return 'native';
-    }
-
-    return `${this.getCode()}:${this.getIssuer()}`;
+    return this.code == asset.getCode() && this.issuer == asset.getIssuer();
   }
 }
